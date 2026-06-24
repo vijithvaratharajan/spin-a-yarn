@@ -185,6 +185,8 @@
   @media (max-width:840px){
     .layout{ grid-template-columns:1fr; }
   }
+  .layout.immersive{ grid-template-columns:1fr; }
+  .layout.immersive .editor-pane{ display:none; }
 
   .pane{
     background:var(--surface);
@@ -193,6 +195,8 @@
     display:flex;
     flex-direction:column;
     min-height:480px;
+    min-width:0;
+    overflow:hidden;
   }
 
   .pane-head{
@@ -451,6 +455,14 @@
     padding:1px 5px;
     font-size:0.74rem;
   }
+  /* ---------- copyright ---------- */
+  .copyright{
+    text-align:center;
+    font-size:0.68rem;
+    color:var(--text-dim);
+    margin-top:14px;
+    letter-spacing:0.04em;
+  }
 </style>
 </head>
 <body>
@@ -484,6 +496,7 @@
         <span class="pane-label">script.dlg</span>
         <div class="pane-actions">
           <button id="btn-example" class="ghost-btn" type="button">load example</button>
+          <button id="btn-narrative" class="ghost-btn" type="button">example narrative</button>
           <button id="btn-load" class="ghost-btn" type="button">open file</button>
           <button id="btn-save" class="ghost-btn" type="button">save file</button>
           <button id="btn-clear" class="ghost-btn" type="button">clear</button>
@@ -501,6 +514,7 @@
     <section class="pane viz-pane">
       <div class="pane-head">
         <span class="pane-label" id="viz-label">graph view</span>
+        <button id="btn-focus" class="ghost-btn" type="button" hidden title="Hide script editor for immersive play">focus mode</button>
         <div class="legend" id="legend">
           <span class="legend-item"><span class="legend-swatch" style="background:var(--amber);"></span>choice</span>
           <span class="legend-item"><span class="legend-swatch" style="background:var(--phosphor-dim);"></span>auto-continue</span>
@@ -523,6 +537,7 @@
       <div><code>-&gt; end</code> &nbsp;ends the conversation</div>
     </div>
   </footer>
+  <p class="copyright">&copy; 2025 Vijith Varatharajan</p>
 </div>
 
 <script>
@@ -1025,6 +1040,13 @@
       document.getElementById('play-view').hidden = mode !== 'play';
       document.getElementById('viz-label').textContent = mode === 'graph' ? 'graph view' : 'play view';
       document.getElementById('legend').hidden = mode !== 'graph';
+      // focus button only appears in play mode
+      document.getElementById('btn-focus').hidden = mode !== 'play';
+      // exit immersive when switching back to graph
+      if(mode !== 'play'){
+        document.querySelector('.layout').classList.remove('immersive');
+        document.getElementById('btn-focus').textContent = 'focus mode';
+      }
     });
   });
 
@@ -1079,6 +1101,253 @@
     };
     reader.readAsText(file);
     e.target.value = '';
+  });
+
+  document.getElementById('btn-focus').addEventListener('click', () => {
+    const layout = document.querySelector('.layout');
+    const focusBtn = document.getElementById('btn-focus');
+    const isImmersive = layout.classList.toggle('immersive');
+    focusBtn.textContent = isImmersive ? 'show editor' : 'focus mode';
+  });
+
+  const NARRATIVE = `:: start
+The docks smell of diesel and cold water. Behind you, Viktor's warehouse hums with the sound of tonight's count.
+Novak steps out of the shadow at your shoulder, quiet as smoke.
+Novak: Viktor found a burner phone. Not one of ours. He's running it against the crew now.
+Eighteen months under this name. Eighteen months of small betrayals, patient lies, working close enough to finally end this.
+Novak: You signed for the Rotterdam crate it was found in. You're fourth on his list.
+He looks at you with the particular stillness of a man who has already made a decision and is waiting to see if you'll make it easier.
++ [Ask Novak what else he knows] -> probe_novak
++ [It's not yours. Tell him that, then go back inside.] -> back_inside
+
+:: probe_novak
+Novak: He didn't find it by accident. Someone handed him a tip. That phone was placed for him to find.
+The implication settles. Someone inside the network wants Viktor looking your way. A play within a play, and you're the piece being moved.
+Novak: Viktor doesn't ask questions. He watches who sweats. You're fourth. There are only six of us tonight.
+He's afraid. Eighteen months and you've never seen him afraid.
+Novak: I know what you are. I've known for a while.
+Not an accusation. A door, held open just long enough for you to decide whether to walk through it.
++ [Step through it. Confirm it and ask him to trust you.] -> confess_to_novak
++ [Close it. Deny everything and tell him the phone is a plant against Viktor.] -> deny_lie
+
+:: back_inside
+The warehouse is too bright. Viktor stands at the far end, still as a man who has learned that stillness is a form of power.
+Sasha, his right hand, is on his phone. His eyes don't move from you.
+You sit down. You pour a drink. Your hands are steady because you've trained them to be.
+Viktor: Tell me something true.
+He takes the seat across from you. His own glass sits untouched between you.
++ [Get ahead of it. Tell him about the burner phone before he can accuse you.] -> preempt_viktor
++ [Confess to skimming the Rotterdam shipment. Small crime. Not the real one.] -> false_confession
+
+:: confess_to_novak
+Novak doesn't speak for a long moment. Somewhere inside, glass breaks and someone laughs.
+Novak: My daughter. She's in the system on a possession charge. If Viktor goes down, does she walk?
+You think about what you're authorised to promise. What you'd promise regardless of authorisation.
+Novak: Don't think. Just answer.
+He's not asking for a guarantee. He's asking who you are when it costs you something.
++ [Promise her immunity. You'll make it happen, whatever it takes.] -> promise_immunity
++ [Tell him the truth. You don't know. You can try, but you don't know.] -> tell_truth
+
+:: deny_lie
+You: The phone isn't mine. Someone inside this crew is running a play against Viktor, and I'm the obvious fall guy.
+Novak watches you with the measured look of a man deciding whether the lie is useful regardless of whether it's true.
+Then Viktor appears in the doorway behind him.
+Viktor: Novak. Bring him in.
+Novak glances back at Viktor, then at you. One second. Two.
++ [Run. Grab Novak's arm and move, now.] -> run_with_novak
++ [Walk in. Face Viktor directly.] -> face_viktor
+
+:: preempt_viktor
+You: The phone was in the Rotterdam crate. I found it when I was signing the manifest. I held off flagging it because I wanted to know who put it there before I said anything.
+Viktor looks at you for a very long time.
+Viktor: And did you find out?
+You: I have a name. I'm not certain enough to say it yet.
+Uncertainty is the thing that saves you. Viktor doesn't trust certainty. It's the tell of a prepared liar. Uncertainty he understands.
+Viktor: You have until morning.
+You nod. You have seventeen minutes before he sends someone to check your story.
++ [Use those seventeen minutes. Get into Viktor's server room.] -> copy_files
++ [Walk out now, clean, before the story unravels.] -> run_clean
+
+:: false_confession
+Viktor listens without expression. When you finish, he smiles.
+Viktor: You think I don't know what you take? I let you take it.
+He leans forward across the table.
+Viktor: What I don't allow is someone sitting in front of me and lying about what they are.
+Sasha locks the door. The sound of the bolt is very quiet.
+Viktor: One more time. Tell me something true.
+You picked the wrong lie. The small one was never going to be small enough.
+-> end_asset
+
+:: promise_immunity
+Novak gives you forty minutes and a key card to Viktor's private terminal.
+You get everything. Server logs. Financial architecture. Names and cell structures across six countries.
+The trial takes fourteen months. Viktor goes down. The network collapses floor by floor.
+Novak's daughter is charged as a co-conspirator. The immunity deal you promised was never yours to give. The prosecutor calls her a calculated risk and moves on.
+You testified for three days. You mentioned Novak's name only where the record required it.
+He disappeared before sentencing. No body. No trace. The agency marks him as a loose end, closed.
+You got everything you came for.
+-> end_weight
+
+:: tell_truth
+You: I don't know. I can push for it. I'll try. But I can't promise.
+Novak holds your gaze. Then he nods once, slowly.
+Novak: At least you're not lying.
+He walks back inside. You wait in the cold for nine minutes, not moving.
+Then the warehouse lights go out. Shouting. The crack of something heavy hitting the floor.
+You walk to the front door. Unlock it with the key you've had for eleven months. Get to your car.
+The extraction is clean. The case file is not. You have nothing from the server, nothing beyond the names already in the record.
+Viktor is arrested six weeks later on a charge that holds. His network splinters. Three cells go dark and resurface under different names two years on.
+Novak was never found. You filed a report that described him as uncooperative. It was the only protection you could still give him.
+-> end_cleanhands
+
+:: run_with_novak
+You grip Novak's arm and move. He doesn't resist.
+Side door, loading bay, down to the waterfront. Viktor's voice carries behind you, sharp and controlled.
+The extraction point is fifty metres ahead. The boat isn't there.
+The beacon blinks twice. Abort signal.
+Novak: What does that mean?
+You: It means we don't use the boat.
+Backup protocol. A storage locker at the bus terminal, six blocks north. Never activated. You memorised the number the day you were briefed and hoped you'd never need it.
++ [Steal the nearest vessel. Get out on the water before they reach the dock.] -> steal_boat
++ [Go to the backup drop. Six blocks on foot in the dark.] -> backup_drop
+
+:: face_viktor
+The room is too bright. Viktor stands at the table.
+The burner phone is sealed in a clear bag in front of him. You recognise the bag before you register why.
+Evidence bag. Police-issue. Not his.
+He didn't find the phone. He was handed it. Which means someone in your agency burned you to Viktor directly.
+Viktor: I know what you are.
+You: Then you know this is already over for both of us if you don't listen.
+Viktor: Tell me who else is in my organisation.
++ [Give him a name. Someone you've had doubts about. Buy yourself time.] -> name_mole
++ [Tell him the truth. His own handler burned you both.] -> burn_yates
+
+:: copy_files
+The server room is cool and very quiet. Sixteen minutes on the clock in your head.
+Transaction records. Correspondent accounts. Supply chain documentation going back four years.
+You copy what you can carry. At fourteen minutes you hear the door.
+Viktor stands in the frame. He looks at the drive in your hand. He looks at your face.
+Then he steps aside.
+Viktor: Make sure they see the Rotterdam files first.
+You walk past him. Out of the building, into the cold, to the car.
+Later, going through the files, you find the Rotterdam records are real. They're also exactly what Viktor needs to eliminate two rivals and consolidate three supply routes under his sole control.
+You handed him the prosecution. He handed you the case. Both of you got what you came for.
+You spend a long time afterward trying to determine who played whom. You never reach a satisfying answer.
+-> end_burn
+
+:: run_clean
+You walk out the front door. Viktor watches you go without moving.
+Sixteen minutes later you're on the extraction boat. The city lights shrink behind you.
+You have a clean exit and an empty drive and eighteen months of your life filed under a name that will be retired by morning.
+Viktor is never charged. The network adapts. You're marked as burned and moved to analysis.
+A desk. A window. Reports you didn't write based on work you can't discuss.
+You left when it mattered and took nothing with you. Some people call that survival. You know what it actually is.
+-> end_survivor
+
+:: steal_boat
+The engine catches on the third try. Novak keeps watch at the dock gate.
+You clear the water with ninety seconds to spare. Viktor's men reach the dock as you hit open darkness.
+You make it. Novak makes it. You have your lives and a story that won't hold up in court without evidence.
+The case drags for two years. Other agents close what they can. The network doesn't collapse. It becomes more careful.
+Novak asks you once, on a bridge in Oslo a year later, whether it was worth it.
+You don't answer. He doesn't push. You buy him a drink and watch the water and neither of you mentions it again.
+-> end_openwater
+
+:: backup_drop
+Twenty-four minutes through an industrial yard and two car parks. Novak keeps pace without complaint.
+The locker number is something you memorised during a briefing and never wrote down. Inside: a laptop, a passport, a single folded note.
+The note is from Yates, your handler. It reads: Trust Novak.
+You turn around. Novak is standing there with his hands in his pockets, watching you read it.
+Novak: Yates called me eight months ago. Said if things came apart, find you. Keep you moving. Get you to the drop.
+You: Why didn't you tell me?
+Novak: Because you hadn't told me anything yet.
+You spend four hours in that storage locker, building the case from memory and the laptop's encrypted archive.
+Viktor is arrested at dawn. The network comes down across four countries over the following month. Novak's testimony, given under full protection, is the centrepiece of the prosecution.
+His daughter's charge is dropped. It takes a call from someone three levels above your pay grade and a prosecutor who owed Yates something from a long time ago.
+Yates never explains why he didn't tell you about Novak from the start. You don't ask.
+-> end_longgame
+
+:: name_mole
+You give Viktor a name. Not a guess. Someone you've had genuine doubts about for three months, someone who fits the shape of it.
+Viktor considers this without expression. Something behind his eyes shifts, almost imperceptibly.
+Viktor: Go.
+You go.
+Whether he believed you or simply found the information useful regardless, you're outside and breathing.
+You reach the extraction point. The boat is late. In the water, waiting, you run the numbers.
+What you gave Viktor may have been right. It may have gotten someone killed. You won't know for certain.
+The results of that kind of investigation are sealed above your clearance.
+-> end_doubt
+
+:: burn_yates
+You: You're right about what I am. But the phone wasn't put there by my agency. It was put there by your handler. Yates has been doubling. I don't know for whom. But whatever he told you about me, he told you because burning me suited him, not because he was finished with you.
+Viktor is very still.
+Viktor: My own people.
+You: Both of ours.
+A long silence. The kind that could go in any direction.
+Viktor: Leave. Before I decide you're more useful as a statement than as a gesture.
+You leave.
+Yates is arrested eleven months later. The charges are sealed.
+Viktor is never charged. On the anniversary of that night, a bottle of wine arrives at your flat. No card. A label you recognise from the warehouse.
+You understand each other, in the way of people who have seen each other clearly and chosen, by mutual and unspoken agreement, to let it rest.
+-> end_pov
+
+:: end_asset
+--- ASSET ---
+Viktor uses you for eleven more weeks. You tell yourself each week you'll find a way out.
+You're found in the Rotterdam docks on a Tuesday morning. Your agency issues a statement expressing deep regret and no further comment.
+The wrong lie was always going to be the one that felt smaller than it was.
+
+:: end_weight
+--- THE WEIGHT OF IT ---
+The network came down. Viktor went to prison. The case was everything you were sent to build.
+You got everything you came for.
+That's what you tell yourself when you think about Novak.
+That's what you're still telling yourself.
+
+:: end_cleanhands
+--- CLEAN HANDS ---
+You walked out with a clean exit and an incomplete case and your integrity intact.
+Novak covered your exit at a cost you'll never fully know. He didn't tell you because you hadn't asked.
+The hands you walked out with aren't as clean as you thought.
+
+:: end_burn
+--- CONTROLLED BURN ---
+You handed him the prosecution. He handed you the case.
+You've reviewed the Rotterdam files four hundred times looking for the moment it stopped being your operation.
+You still haven't found it.
+
+:: end_survivor
+--- SURVIVOR ---
+Alive. Extracted. Nothing to show for eighteen months but a desk and a window and the specific, permanent knowledge of what you chose not to do.
+Some people call that discipline. You've stopped arguing with them.
+
+:: end_openwater
+--- OPEN WATER ---
+You made it out. Novak made it out. The network is still running.
+On a bridge in Oslo, Novak asks you if it was worth it and you don't answer.
+That's its own kind of answer. Both of you know it.
+
+:: end_longgame
+--- THE LONG GAME ---
+The network came down. Novak's daughter went home. The case held.
+Yates never explains the part about Novak. You never ask.
+Some things in this work are held together by not looking at them directly.
+
+:: end_doubt
+--- REASONABLE DOUBT ---
+You gave Viktor a name. Something happened as a result. The report is classified.
+Four years of investigation. A sealed outcome. A name you may or may not have gotten right.
+You'll be wondering about that name for the rest of your career.
+
+:: end_pov
+--- POINT OF VIEW ---
+Viktor sends wine on the anniversary. No card.
+Yates went to prison. The network survived. You're still in the field under a different name.
+It is not justice. But you and Viktor understand each other, and there are worse things to be left with than that.`;
+
+  document.getElementById('btn-narrative').addEventListener('click', () => {
+    document.getElementById('script-input').value = NARRATIVE;
+    run();
   });
 
   const EXAMPLE = [
